@@ -3,7 +3,7 @@
 # Nutzung des ffanalytics Packages
 # https://fantasyfootballanalytics.net/2016/06/ffanalytics-r-package-fantasy-football-data-analysis.html
 #########################################################################################################################
-# Environment löschen
+# Environment lÃ¶schen
 rm(list = ls())
 
 # Packages laden
@@ -25,11 +25,11 @@ HData2 <- scrape_data(src = "CBS",
 
 Qb <- HData$QB
 
-# Predictions für die 2021 Saison
+# Predictions fÃ¼r die 2021 Saison
 Preds <- projections_table(HData)
 
 # WR analysieren
-Preds %>% 
+Wr_Data <- Preds %>% 
   filter(pos == "WR") %>%
   add_player_info() %>%
   arrange(pos_rank) %>%
