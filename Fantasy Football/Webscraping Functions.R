@@ -4,7 +4,7 @@
 # https://www.dataquest.io/blog/web-scraping-in-r-rvest/
 # Nutzung des rvest Packages
 #########################################################################################################################
-# Environment löschen
+# Environment lÃ¶schen
 rm(list = ls())
 
 # Packages laden
@@ -40,7 +40,7 @@ CBS_load <- function(){
     # Ergebnis DF bilden und Spaltennamen definieren
     x4 <- data.frame(Rank = x3[1,], Player = x3[5,], Position = x3[6,], Team = x3[7,], Trend = x3[8,], AVGPOS = x3[9,], HILO = x3[10,], PCT = x3[11,])
     
-    # DF an Liste anhängen
+    # DF an Liste anhÃ¤ngen
     Ergebnis_List[[i-1]] <- x4
     
   }
@@ -60,7 +60,7 @@ FDG_load <- function(){
   # Content auslesen
   Res <- httr::content(httr::GET("https://www.freedraftguide.com/football/adp-aav-provider.php?NUM=&STYLE=0&AAV="))
   
-  # Schleife über alle Spieler
+  # Schleife Ã¼ber alle Spieler
   for (i in 1:length(Res$player_list)) {
     
     # einzelner Spieler
@@ -70,7 +70,7 @@ FDG_load <- function(){
     x2 <- data.frame(Rank = round(as.numeric(x$avg)), Player = as.character(x$name), Position = as.character(x$position),
                      Team = as.character(x$team), Trend = as.numeric(x$change), AVGPOS = as.numeric(x$avg))
     
-    # DF an Liste anhängen
+    # DF an Liste anhÃ¤ngen
     Ergebnis_List[[i]] <- x2
     
   }
@@ -113,7 +113,7 @@ NFL_load <- function(){
   
   for(i in 1:length(x3)){
     
-    # DF für jeden Spieler
+    # DF fÃ¼r jeden Spieler
     Ergebnis_List[[i]] <- data.frame(Rank = i,
                                      Player = paste(x3[[i]][1], x3[[i]][2], sep = " "),
                                      Position = x3[[i]][3],
@@ -122,8 +122,58 @@ NFL_load <- function(){
   
   # Ergebnis als DF
   Ergebnis <- bind_rows(Ergebnis_List)
-
+  
+  # Ergebnis ausgeben
+  return(Ergebnis)
 }
+
+
+Daten3 <- NFL_load()
+
+# Fantasy Football Calculator Funktion---------------------------------------------------------------------------------------------
+FFC_load <- function(){
+  
+  # Ergebnis Liste erstellen
+  Ergebnis_List <- list()
+  
+  # html auslesen
+  FF_html <- read_html("https://fantasyfootballcalculator.com/adp/ppr")
+  
+  # html tag table auslesen
+  Res <- FF_html %>%
+    html_node("table") %>%
+    html_text()
+  
+  # Inhalt in einzelne Character aufteilen
+  x <- as.data.frame.list(str_split(Res, "\n"))
+  
+  # Schleife um durch das DF zu iterieren und Daten eines Spielers in eine Zeile
+  i = 17
+  while (i <= nrow(x)){
+    Ergebnis_List[[i / 17]] <- data.frame(Rank = str_trim(x[i,]),
+                                     Player = str_trim(x[i + 2, ]),
+                                     Position = str_trim(x[i + 3, ]),
+                                     Team = str_trim(x[i + 4, ]))
+    
+    i = i + 17  
+  }
+  
+  # Ergebnis als DF
+  Ergebnis <- bind_rows(Ergebnis_List) %>% 
+    mutate()
+  
+  # Ergebnis ausgeben
+  return(Ergebnis)
+}
+
+Daten4 <- FFC_load()
+View(Daten4)
+
+
+
+
+
+
 
 
 
