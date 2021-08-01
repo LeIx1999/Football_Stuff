@@ -1,0 +1,14 @@
+name: NFL_WP
+title: NFL_WP
+username:
+account: jniesen
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4224577
+bundleId: 4689044
+url: https://jniesen.shinyapps.io/NFL_WP/
+when: 1623091305.23515
+lastSyncTime: 1623091305.23515
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: Connection.R|WP Shiny App.R
