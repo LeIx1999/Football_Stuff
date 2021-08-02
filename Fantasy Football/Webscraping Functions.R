@@ -3,6 +3,7 @@
 # Webscrpaping with R
 # https://www.dataquest.io/blog/web-scraping-in-r-rvest/
 # Nutzung des rvest Packages
+# Quellen = c("CBS", "freedraftguide", "fantasy football calculator", "NFL", "Fantasypros")
 #########################################################################################################################
 # Environment löschen
 rm(list = ls())
@@ -29,17 +30,28 @@ CBS_load <- function(){
   for (i in 2:length(Res)) {
     
     # in einzelne character splitten
-    x <- as.character(str_split(Res[i], "\n"))
+    x <- str_split(Res[i], "/n")
     
     # character bereinigen
-    x2 <- str_replace_all(x, "\"\"|\"| |c\\(|\\)|\n", "")
+    x2 <- str_replace_all(x, "\"\"|\"| |c\\(|\\)|\n", ",")
     
     # als Data Frame und DF bereinigen (grepl() um alles zu entfernen wo ":" enthalten ist)
     x3 <- as.data.frame(str_split(x2, ","), col.names = "Info") %>% filter(Info != "", !grepl(":", Info))
     
-    # Ergebnis DF bilden und Spaltennamen definieren
-    x4 <- data.frame(Rank = x3[1,], Player = x3[5,], Position = x3[6,], Team = x3[7,], Trend = x3[8,], AVGPOS = x3[9,], HILO = x3[10,], PCT = x3[11,])
+    # Informationen über verletzte Spieler zerstören die Struktur
     
+    # Deshalb dies abfragen
+    if(nrow(x3) > 13){
+      
+    # Nur die Inforamtionen für den Verletzungsinformationen nehmen
+      x4 <- data.frame(Rank = x3[1,], Player = paste(x3[2,], x3[3,], sep = " "), Position = x3[4,], Team = x3[5,], Trend = NA,
+                       NA, HILO = NA, PCT = NA)
+    } else {
+    
+      # Ergebnis DF bilden und Spaltennamen definieren
+      x4 <- data.frame(Rank = x3[1,], Player = paste(x3[6,], x3[7,], sep = " "), Position = x3[8,], Team = x3[9,], Trend = x3[10,],
+                       AVGPOS = x3[11,], HILO = x3[12,], PCT = x3[13,])
+    }
     # DF an Liste anhängen
     Ergebnis_List[[i-1]] <- x4
     
@@ -168,6 +180,49 @@ FFC_load <- function(){
 
 Daten4 <- FFC_load()
 View(Daten4)
+
+# FantasyPros Funktion ---------------------------------------------------------------------------------------------
+FP_load <- function(){
+  
+  # Ergebnis Liste erstellen
+  Ergebnis_List <- list()
+  
+  FF_html <- read_html("https://www.fantasypros.com/nfl/adp/half-point-ppr-overall.php")
+  
+  Res <- FF_html %>%
+    html_node("table") %>%
+    html_text()
+  
+  # Inhalte in Character splitten
+  x <- as.data.frame(str_split(Res, "\n"))
+  
+  # Schleife um durch das DF zu iterieren
+  # Die ersten 5 Zeilen sind nicht wichtig
+  i = 5 
+  while(i <= nrow(x)){
+    # Liste erstellen
+    Ergebnis_List[[i/5]] <- data.frame(Rank = x[i,],
+                                       Player = paste(str_split(x[i + 1,], " ")[[1]][1], str_split(x[i + 1,], " ")[[1]][2], sep = " "),
+                                       Position = substr(x[i + 2,], 1, 2),
+                                       Team = str_split(x[i + 1, ], " ")[[1]][3])
+    i = i + 6
+  }
+  # Ergebnis als DF
+  Ergebnis <- bind_rows(Ergebnis_List)
+  
+  # Ergebnis ausgeben
+  return(Ergebnis)
+}
+
+FP_load()
+
+# Funktionen speichern
+save(CBS_load, FDG_load, FFC_load, FP_load, NFL_load,
+     file = "C:/Users/janni/OneDrive - EUFH GmbH/R-Uebungen/Football Stuff/Fantasy Football/Scraping_Functions.RData")
+
+save(CBS_load, file = "C:/Users/janni/OneDrive - EUFH GmbH/R-Uebungen/Football Stuff/Fantasy Football/test.RData")
+
+
 
 
 
