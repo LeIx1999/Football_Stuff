@@ -38,14 +38,21 @@ CBS_load <- function(){
     # als Data Frame und DF bereinigen (grepl() um alles zu entfernen wo ":" enthalten ist)
     x3 <- as.data.frame(str_split(x2, ","), col.names = "Info") %>% filter(Info != "", !grepl(":", Info))
     
-    # Informationen über verletzte Spieler zerstören die Struktur
+    # Informationen über verletzte Spieler zerstören die Struktur sowie Defenses
     
-    # Deshalb dies abfragen
+    # Abfrage für verletzte Spieler
     if(nrow(x3) > 13){
       
     # Nur die Inforamtionen für den Verletzungsinformationen nehmen
       x4 <- data.frame(Rank = x3[1,], Player = paste(x3[2,], x3[3,], sep = " "), Position = x3[4,], Team = x3[5,], Trend = NA,
                        NA, HILO = NA, PCT = NA)
+      
+    # Abfrage für Defenses  
+    } else if(x3[3, ] == "DST"){
+      
+      x4 <- data.frame(Rank = x3[1,], Player = paste(x3[4,], x3[3,], sep = " "), Position = x3[3,], Team = x3[4,], Trend = x3[8,],
+                       AVGPOS = x3[9,], HILO = x3[10,], PCT = x3[11,])
+      
     } else {
     
       # Ergebnis DF bilden und Spaltennamen definieren
@@ -58,6 +65,16 @@ CBS_load <- function(){
   }
   # Liste als DF umformen
   Ergebnis <- bind_rows(Ergebnis_List)
+  
+  # Jaguars JAC zu JAX
+  Ergebnis <- Ergebnis %>%
+    mutate(Team = as.character(Team))
+  
+  Ergebnis[Ergebnis$Team == "JAC", ]$Team <- "JAX"
+  
+  # Schlüssel bilden (Anfangsbuchstabe Vorname, Nachname, Team, Position)
+  Ergebnis$Name <- paste(substr(sapply(str_split(Ergebnis$Player, " "), `[[`, 1), 1, 1 ), sapply(str_split(Ergebnis$Player, " "),`[[`, 2), 
+                         Ergebnis$Team, Ergebnis$Position)
   
   # Ergebnisse ausgeben
   return(Ergebnis)
@@ -90,6 +107,10 @@ FDG_load <- function(){
   # Liste als Df
   Ergebnis <- bind_rows(Ergebnis_List)
   
+  # Schlüssel bilden (Anfangsbuchstabe Vorname, Nachname, Team, Position)
+  Ergebnis$Name <- paste(substr(sapply(str_split(Ergebnis$Player, " "), `[[`, 1), 1, 1 ), sapply(str_split(Ergebnis$Player, " "),`[[`, 2), 
+                         Ergebnis$Team, Ergebnis$Position)
+  
   # Ergebnis ausgeben
   return(Ergebnis)
   
@@ -101,6 +122,7 @@ NFL_load <- function(){
   # Ergebnis Liste erstellen
   Ergebnis_List <- list()
   
+  # Problem auf einer Seite sind nur 100 Spieler. Deshalb zwei HTML auslesen
   # HTML auslesen
   FF_html <- read_html("https://fantasy.nfl.com/research/rankings?leagueId=0&statType=draftStats")
   
@@ -122,18 +144,79 @@ NFL_load <- function(){
   x3 <- str_split(x2, " ") 
   
   # Durch jeden Spieler iterieren
-  
   for(i in 1:length(x3)){
     
-    # DF für jeden Spieler
-    Ergebnis_List[[i]] <- data.frame(Rank = i,
-                                     Player = paste(x3[[i]][1], x3[[i]][2], sep = " "),
-                                     Position = x3[[i]][3],
-                                     Team = x3[[i]][5])
+    # Sonderfall abfragen für Spieler mit Jr. oder III
+    if(!x3[[i]][3] %in% c("RB", "QB", "TE", "WR", "K")) {
+      
+      # DF für Sonderfall Spieler
+      Ergebnis_List[[i]] <- data.frame(Rank = i,
+                                       Player = paste(x3[[i]][1], x3[[i]][2], x3[[i]][3], sep = " "),
+                                       Position = x3[[i]][4],
+                                       Team = x3[[i]][6])
+    } else {
+      
+      # DF für die "normalen" Spieler
+      Ergebnis_List[[i]] <- data.frame(Rank = i,
+                                       Player = paste(x3[[i]][1], x3[[i]][2], sep = " "),
+                                       Position = x3[[i]][3],
+                                       Team = x3[[i]][5])
+    }
   }
   
   # Ergebnis als DF
   Ergebnis <- bind_rows(Ergebnis_List)
+  
+  # Zweite Seite
+  FF_html <- read_html("https://fantasy.nfl.com/research/rankings?offset=101&sort=average&statType=draftStats#researchRankings=researchRankings%2C%2Fresearch%2Frankings%253Foffset%253D101%2526sort%253Daverage%2526statType%253DdraftStats%2Creplace")
+  
+  # Neue Ergebnis_List
+  Ergebnis_List <- list()
+  
+  # Nach Tag suchen
+  Res <- FF_html %>%
+    html_node('tbody') %>%
+    html_text()
+  
+  # String als Liste splitten
+  x <- str_split(Res, "--")[[1]][-101]
+  
+  # Spieler Listenelement splitten
+  x2 <- str_split(x, " ") 
+  
+  # Durch jeden Spieler iterieren
+  for (i in 1:length(x2)){
+    
+    # Sonderfall abfragen für Spieler mit Jr. oder III
+    if(!x2[[i]][3] %in% c("RB", "QB", "TE", "WR", "K")) {
+      
+      # DF für Sonderfall Spieler
+      Ergebnis_List[[i]] <- data.frame(Rank = substr(x2[[i]][1], 1, 3),
+                                       Player = paste(substr(x2[[i]][1], 4, nchar(x2[[i]][1])), x2[[i]][2], x2[[i]][3], sep = " "),
+                                       Position = x2[[i]][4],
+                                       Team = x2[[i]][6])
+    } else {
+      
+      # DF für "normale" Spieler
+      Ergebnis_List[[i]] <- data.frame(Rank = substr(x2[[i]][1], 1, 3),
+                                       Player = paste(substr(x2[[i]][1], 4, nchar(x2[[i]][1])), x2[[i]][2], sep = " "),
+                                       Position = x2[[i]][3],
+                                       Team = x2[[i]][5])
+    }
+  }
+  # Ergebnis als DF
+  Ergebnis<- rbind(Ergebnis, bind_rows(Ergebnis_List))
+  
+  # Team LA zu LAR ändern
+  Ergebnis <- Ergebnis %>%
+    mutate(Team = as.character(Team))
+  
+  Ergebnis[Ergebnis$Team == "LA",]$Team <- "LAR"
+  
+  # Schlüssel bilden (Anfangsbuchstabe Vorname, Nachname, Team, Position)
+  Ergebnis$Name <- paste(substr(sapply(str_split(Ergebnis$Player, " "), `[[`, 1), 1, 1 ), sapply(str_split(Ergebnis$Player, " "),`[[`, 2), 
+                         Ergebnis$Team, Ergebnis$Position)
+  
   
   # Ergebnis ausgeben
   return(Ergebnis)
@@ -171,8 +254,12 @@ FFC_load <- function(){
   }
   
   # Ergebnis als DF
-  Ergebnis <- bind_rows(Ergebnis_List) %>% 
-    mutate()
+  Ergebnis <- bind_rows(Ergebnis_List) %>%
+    filter(!is.na(Player))
+  
+  # Schlüssel bilden (Anfangsbuchstabe Vorname, Nachname, Team, Position)
+  Ergebnis$Name <- paste(substr(sapply(str_split(Ergebnis$Player, " "), `[[`, 1), 1, 1 ), sapply(str_split(Ergebnis$Player, " "),`[[`, 2), 
+                         Ergebnis$Team, Ergebnis$Position)
   
   # Ergebnis ausgeben
   return(Ergebnis)
@@ -200,15 +287,51 @@ FP_load <- function(){
   # Die ersten 5 Zeilen sind nicht wichtig
   i = 5 
   while(i <= nrow(x)){
-    # Liste erstellen
+    
+    # Sonderfälle wie Namen mit Jr. oder III abfragen sowie Defenses
+    # Namen
+    if(str_split(x[i + 1,], " ")[[1]][3] %in% c("Jr.", "III", "V", "II", "Sr.")){
+      
+      # Namen einfach erweitern
+      Ergebnis_List[[i/5]] <- data.frame(Rank = x[i,],
+                                         Player = paste(str_split(x[i + 1,], " ")[[1]][1], str_split(x[i + 1,], " ")[[1]][2],
+                                                        str_split(x[i + 1,], " ")[[1]][3], sep = " "),
+                                         Position = substr(x[i + 2,], 1, 2),
+                                         Team = str_split(x[i + 1, ], " ")[[1]][4])
+    # Defenses
+    } else if(length(str_split(x[i + 1,], " ")[[1]]) >=4 && "DST" %in% 
+              c(str_split(x[i + 1,], " ")[[1]][3], str_split(x[i + 1,], " ")[[1]][4])){
+      
+      # Bei den Defenses fehlt leider das Team
+      Ergebnis_List[[i/5]] <- data.frame(Rank = x[i,],
+                                         Player = paste(str_split(x[i + 1,], " ")[[1]][1], str_split(x[i + 1,], " ")[[1]][2],
+                                                        str_split(x[i + 1,], " ")[[1]][3], sep = " "),
+                                         Position = substr(x[i + 2,], 1, 3),
+                                         Team = NA)
+      
+    } else {
+      
+    # DF für die "normalen" Spieler erzeugen
     Ergebnis_List[[i/5]] <- data.frame(Rank = x[i,],
                                        Player = paste(str_split(x[i + 1,], " ")[[1]][1], str_split(x[i + 1,], " ")[[1]][2], sep = " "),
                                        Position = substr(x[i + 2,], 1, 2),
                                        Team = str_split(x[i + 1, ], " ")[[1]][3])
+    }
+    
     i = i + 6
   }
   # Ergebnis als DF
   Ergebnis <- bind_rows(Ergebnis_List)
+  
+  # Jaguars JAC zu JAX
+  Ergebnis <- Ergebnis %>%
+    mutate(Team = as.character(Team))
+  
+  Ergebnis[Ergebnis$Team == "JAC" & !is.na(Ergebnis$Team), ]$Team <- "JAX"
+  
+  # Schlüssel bilden (Anfangsbuchstabe Vorname, Nachname, Team, Position)
+  Ergebnis$Name <- paste(substr(sapply(str_split(Ergebnis$Player, " "), `[[`, 1), 1, 1 ), sapply(str_split(Ergebnis$Player, " "),`[[`, 2), 
+                         Ergebnis$Team, Ergebnis$Position)
   
   # Ergebnis ausgeben
   return(Ergebnis)
@@ -221,6 +344,8 @@ save(CBS_load, FDG_load, FFC_load, FP_load, NFL_load,
      file = "C:/Users/janni/OneDrive - EUFH GmbH/R-Uebungen/Football Stuff/Fantasy Football/Scraping_Functions.RData")
 
 save(CBS_load, file = "C:/Users/janni/OneDrive - EUFH GmbH/R-Uebungen/Football Stuff/Fantasy Football/test.RData")
+
+
 
 
 
