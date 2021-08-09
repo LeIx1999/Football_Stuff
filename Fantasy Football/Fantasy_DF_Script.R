@@ -1,8 +1,8 @@
 #########################################################################################################################
 # ADP der verschiedenen Quellen in ein DF zusammenfassen
-# Andere Informationen hinzufügen
+# Andere Informationen hinzufÃ¼gen
 #########################################################################################################################
-# Environment löschen
+# Environment lÃ¶schen
 rm(list = ls())
 
 # Packages laden
@@ -41,7 +41,7 @@ ADP <- NFL %>%
 # Wenn der Spieler bei mehr als zwei Seiten nicht geranked ist, dann rausfiltern also NA setzen
 ADP[rowSums(is.na(ADP)) > 2, 5:9] <- NA
 
-# Wenn der Spieler bei weniger als zwei Seiten nicht geranked ist, dann für dei beiden Seiten den schlechtesten Rank einsetzen
+# Wenn der Spieler bei weniger als zwei Seiten nicht geranked ist, dann fÃ¼r dei beiden Seiten den schlechtesten Rank einsetzen
 ADP[is.na(ADP$NFL_Rank), ]$NFL_Rank <- max(ADP$NFL_Rank, na.rm = T) + 1
 ADP[is.na(ADP$CBS_Rank), ]$CBS_Rank <- max(ADP$CBS_Rank, na.rm = T) + 1
 ADP[is.na(ADP$FDG_Rank), ]$FDG_Rank <- max(ADP$FDG_Rank, na.rm = T) + 1
@@ -53,11 +53,14 @@ ADP <- ADP %>%
         filter(!Key == "D Moore CAR WR " & !row_number() == 56) %>%
         filter(!Key == "D Johnson HOU RB" & !row_number() == 92)
 
-# Spalten mean, min, max einführen
+# Spalten mean, min, max einfÃ¼hren
 ADP <- ADP %>% 
         mutate(Mean = rowMeans(ADP[, 5:9]),
                Max = apply(ADP[,5:9], 1, max),
                Min = apply(ADP[,5:9], 1, min),
                Sd = round(apply(ADP[5:9], 1, sd), 2)) %>%
         arrange(Mean)
+
+# Daten speichern fÃ¼r Nutzung in shiny App
+save(ADP, file = "C:/Users/janni/OneDrive - EUFH GmbH/R-Uebungen/Football Stuff/Fantasy Football/Shiny_App/ADP.RData")
 
