@@ -23,15 +23,12 @@ load("wp_fit.RData")
 
 # Anpassung an der Spalte week, wenn week < 10 dann 0 davor -----------
 Vorhersagen <- Predictions %>%
-  mutate(week = ifelse(week < 10, paste(0, week, sep = ""), as.character(week))) %>%
+  mutate(week = ifelse(week < 10, paste0(0, week), as.character(week))) %>%
   filter(qtr <= 4)
 
-# Aktuelle Play-by-Play Daten laden, die für die noch keine Predictions erstellt wurden ------------
+# Aktuelle Play-by-Play Daten laden, die f?r die noch keine Predictions erstellt wurden ------------
 
 # Allerdings nur, wenn die Daten an dem Tag noch nicht geupdatet wurden
-
-
-
 if(Predictions[nrow(Predictions), "Update_Zeitpunkt"] <= Sys.Date()) {
   
   pbp_2021 <-  nflfastR::load_pbp(2021) %>%
@@ -75,7 +72,7 @@ if(Predictions[nrow(Predictions), "Update_Zeitpunkt"] <= Sys.Date()) {
   # Vorhersagen erstellen
   Predictions_new <- predict(wp_fit, type = "prob", new_data = pbp_2021[,1:15])
   
-  # Zusätzliche Variablen für den Plot joinen
+  # Zusaetzliche Variablen fuer den Plot joinen
   Predictions_new <- cbind(pbp_2021, Predictions_new) %>%
     mutate(wp = .pred_1,
            label = ifelse(wp >= 0.5, 1, 0),
@@ -100,13 +97,12 @@ if(Predictions[nrow(Predictions), "Update_Zeitpunkt"] <= Sys.Date()) {
   # Dann Predictions speichern
   save(Predictions, file = "Predictions.RData")
   
-  # Anpassung an der Spalte week, wenn week < 10 dann 0 davor -----------
+  # Anpassung an der Spalte week, wenn week < 10 dann 0 davor 
   Vorhersagen <- Predictions %>%
-    mutate(week = ifelse(week < 10, paste(0, week, sep = ""), as.character(week)))
+    mutate(week = ifelse(week < 10, paste0(0, week), as.character(week)))
     
 
 }
-
 
 # WP_Plot Funktion laden
 load("WP_Plot.RData")
@@ -152,12 +148,12 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   
-  # Reactive Button: Für die Wochen, die in der Saison schon gespielt wurden
+  # Reactive Button: Fuer die Wochen, die in der Saison schon gespielt wurden
   output$Week_Reactive <- renderUI({
-    selectInput("Week", label = "Welche Woche?", unique(Vorhersagen[Vorhersagen$season == input$Season, "week"]))
+    selectInput("Week", label = "Welche Woche?", sort(unique(Vorhersagen[Vorhersagen$season == input$Season, "week"]), decreasing = T))
   })
   
-  # Reactive Button: Mit den vorhandenen Spielen für die Saison und Woche  
+  # Reactive Button: Mit den vorhandenen Spielen fuer die Saison und Woche  
   output$secondSelection <- renderUI({
     selectInput("Game", label = "Welches Spiel?", apply(as.matrix(unique(Vorhersagen[Vorhersagen$season == input$Season & Vorhersagen$week == input$Week, "game_id"])),
                                                         2, substr, 9, 20))
@@ -191,4 +187,3 @@ server <- function(input, output, session) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
