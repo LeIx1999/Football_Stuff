@@ -3,7 +3,7 @@
 # Input: Data Frame mit den Vorhersagen
 # Output: plotly Plot
 #######################################################################################################
-# Environment l�schen
+# Environment l?schen
 rm(list = ls())
 
 # Packages laden
@@ -12,7 +12,7 @@ library(plotly)
 
 WP_Plot<- function(Data){
   
-  # Kennzeichnen ob über 0.5 oder nicht
+  # Kennzeichnen ob Ã¼ber 0.5 oder nicht
   Data$home_wp_temp <- Data$home_wp
   Data$home_wp_temp <- ifelse(Data$home_wp_temp >= 0.5,Data$home_wp_temp *1, Data$home_wp_temp *-1 )
   
@@ -22,7 +22,7 @@ WP_Plot<- function(Data){
   a3 <- sign(a1) != sign(a2)
   Data$a3 <- a3
   
-  # an den Stellen eine 0 einfügen
+  # an den Stellen eine 0 einfÃ¼gen
   insertZeroRow <- function(df,i){ 
     n <- nrow(Data)
     ndf1 <- Data[1:i,] # note these overlap by 1
@@ -40,17 +40,27 @@ WP_Plot<- function(Data){
     i <- i+1
   }
   
-  # Für die beiden Linien
+  # FÃ¼r die beiden Linien
   Data$pos <- ifelse(Data$home_wp_temp >=0.5 | Data$home_wp_temp == 0, Data$home_wp, NA)
   Data$neg <- ifelse(Data$home_wp_temp < 0.5, Data$home_wp, NA)
   Data <- Data %>% mutate(row = row_number())
+  
+  # Farben anpassen
+  
+  # Heimteam Linie
+  home_team_color <- ifelse(substr(Data[Data$home == 1,]$team_color[1], 1, 2) != substr(Data[Data$home == 0,]$team_color[1], 1, 2)
+                            , Data[Data$home == 1,]$team_color[1], Data[Data$home == 1,]$team_color2[1])
+  
+  # Auswaertsteam Linie 
+  away_team_color <- ifelse(substr(Data[Data$home == 0,]$team_color[1], 1, 2) != substr(Data[Data$home == 1,]$team_color[1], 1, 2)
+                            , Data[Data$home == 0,]$team_color[1], Data[Data$home == 0,]$team_color2[1])
   
   #################################################################################################
   # Plotten
   #################################################################################################
   
-  # Ursprünglichen Plot mit Plotly erstellen (wegen aes(group = 1) Problem)
-  # Infos für x-Achse definieren
+  # UrsprÃ¼nglichen Plot mit Plotly erstellen (wegen aes(group = 1) Problem)
+  # Infos fÃ¼r x-Achse definieren
   ax <- list(
     showline = TRUE,
     mirror = "ticks",
@@ -65,7 +75,7 @@ WP_Plot<- function(Data){
     tickmode = "array"
   )
   
-  # Infos für y-Achse definieren
+  # Infos fÃ¼r y-Achse definieren
   ay <- list(
     showline = TRUE,
     mirror = "ticks",
@@ -78,10 +88,11 @@ WP_Plot<- function(Data){
     tickmode = "array"
   )
   
-  # Infos für Title
+  # Infos fÃ¼r Title
   title <- list(
-    text = paste("Siegwahrscheinlichkeit", Data$game_id),
-    font = list(color = Data[Data$label == 1,]$team_color[1], size = 15)
+    text = paste("Siegwahrscheinlichkeit:", Data[Data$home == 0, ]$team_name[1], "@", Data[Data$home == 1, ]$team_name[1], "(",
+                 Data$total_away_score[nrow(Data)], ":", Data$total_home_score[nrow(Data)], ")"),
+    font = list(color = ifelse(Data[Data$label == 1, ]$home == 0, away_team_color, home_team_color), size = 15)
   )
   
   # Plot erstellen
@@ -90,16 +101,17 @@ WP_Plot<- function(Data){
     add_segments(x = 0, xend = nrow(Data), y= 0.5, yend = 0.5, line = list(dash = "dot", color = "red", width = 4)) %>%
     # Heimteam Linie
     add_trace(Data, x = ~play, y = ~pos, type = "scatter", mode = "lines",
-              line = list(color = Data[Data$home == 1,]$team_color[1], width = 4),
+              line = list(color = home_team_color, width = 4),
               hoverinfo = "skip") %>% 
     # Auswaertsteam Linie
     add_trace(Data, x = ~play, y = ~neg, type = "scatter", mode = "lines",
-              line = list(color = Data[Data$home == 0,]$team_color[1], width = 4),
-              hoverinfo = "skip")%>%
+              line = list(color = away_team_color, width = 4),
+              hoverinfo = "skip")%>% 
     # Interressante Plays
     add_trace(Data, x = Data[(abs(Data$home_wp[Data$row] - Data$home_wp[Data$row + 1]) > 0.05) == 1,]$play,
               y = Data[(abs(Data$home_wp[Data$row] - Data$home_wp[Data$row + 1]) > 0.05) == 1,]$home_wp, type = "scatter", mode = "markers",
-              marker = list(color = Data[(abs(Data$home_wp[Data$row] - Data$home_wp[Data$row + 1]) > 0.05) == 1,]$team_color, size = 14),
+              marker = list(color = ifelse(Data[(abs(Data$home_wp[Data$row] - Data$home_wp[Data$row + 1]) > 0.05) == 1,]$home == 1, home_team_color, away_team_color),
+                            size = 14),
               hovertemplate = paste("Spielzug:",Data[(abs(Data$home_wp[Data$row] - Data$home_wp[Data$row + 1]) > 0.05) == 1,]$desc, "<extra></extra>")) %>%
     # Layout
     layout(title = title,
@@ -115,7 +127,7 @@ WP_Plot<- function(Data){
     xref = "paper", yref = "paper", 
     xanchor = "left", yanchor = "bottom"
   ),
-  # Logo des Auswärtsteam
+  # Logo des AuswÃ¤rtsteam
   list(
     source = Data[Data$home == 0,]$team_logo_wikipedia[1],
     x =  0, y =0, 
@@ -127,6 +139,6 @@ WP_Plot<- function(Data){
   
 }
 
-save(WP_Plot, file = "C:/Users/janni/OneDrive - EUFH GmbH/R-Uebungen/Football Stuff/Football/Shiny_WP/WP_Plot.RData")
+save(WP_Plot, file = "C:/Users/janni/OneDrive/R-Uebungen/Football Stuff/Football/Shiny_WP/WP_Plot.RData")
 
 
