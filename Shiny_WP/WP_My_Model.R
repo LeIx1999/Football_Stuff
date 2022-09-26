@@ -24,7 +24,7 @@ options(scipen = 999999)
 # Datenextraktion
 ################################################################################
 future::plan("multisession")
-pbp_data <- nflfastR::load_pbp(2001:2020) %>%
+pbp_data <- nflfastR::load_pbp(2001:2021) %>%
   mutate(
     # Label um zu erkennen, ob das Team mit possession gewonnen hat
     # Nas und unentschieden erstmal ignorieren
@@ -76,11 +76,11 @@ pbp_data <- nflfastR::load_pbp(2001:2020) %>%
 ######################################################################
 # Daten in Train, Test und CV aufteilen
 ######################################################################
-# Saison 2019 und 2020 als Testdaten
-test_data <- pbp_data %>% filter(season >= 2019) %>% select(-label)
+# Saison 2020 und 2021 als Testdaten
+test_data <- pbp_data %>% filter(season >= 2020) %>% select(-label)
 
 # Den Rest als Training
-train_data <- pbp_data %>% filter(season < 2019)
+train_data <- pbp_data %>% filter(season < 2020)
 
 # Cross Validation Datensatz
 # game_id gruppen werden zusammengenommen, Wichtig da die Zielvariable bei jedem Play des selben Spiels gleich ist.
@@ -188,12 +188,12 @@ wp_final <-
 wp_fit <- fit(wp_final, pbp_data)
 
 # Modell speichern
-save(wp_fit, file = "C:/Users/janni/OneDrive/R-Uebungen/Football Stuff/Football/Shiny_WP/wp_fit.RData")
+# save(wp_fit, file = "C:/Users/janni/OneDrive/R-Uebungen/Football Stuff/Football/Shiny_WP/wp_fit.RData")
 
 # Predictions erstellen--------------------------------------------------------------------------------------------
 
-# Play by Play Daten für die entsprechenden Spiele laden
-pbp_2021 <-  nflfastR::load_pbp(2018:2021) %>%
+# Play by Play Daten f?r die entsprechenden Spiele laden
+pbp_2022 <-  nflfastR::load_pbp(2018:2022) %>%
   mutate(
     home = ifelse(posteam == home_team, 1, 0)
   ) %>%
@@ -233,7 +233,7 @@ pbp_2021 <-  nflfastR::load_pbp(2018:2021) %>%
 # Predictions erstellen
 Predictions <- predict(wp_fit, type = "prob", new_data = pbp_2021[,1:15])
 
-# Zusätzliche Variablen für den Plot joinen
+# Zus?tzliche Variablen f?r den Plot joinen
 Predictions <- cbind(pbp_2021, Predictions) %>%
   mutate(wp = .pred_1,
          label = ifelse(wp >= 0.5, 1, 0),

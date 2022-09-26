@@ -31,8 +31,8 @@ Vorhersagen <- Predictions %>%
 # Allerdings nur, wenn die Daten an dem Tag noch nicht geupdatet wurden
 if(Predictions[nrow(Predictions), "Update_Zeitpunkt"] <= Sys.Date()) {
   
-  pbp_2021 <-  nflfastR::load_pbp(2021) %>%
-    filter(week >= as.numeric(substr(Predictions[nrow(Predictions), "game_id"], 6, 7))) %>%
+  pbp_2021 <-  nflfastR::load_pbp(2022) %>%
+    # filter(week >= as.numeric(substr(Predictions[nrow(Predictions), "game_id"], 6, 7))) %>%
     mutate(
       home = ifelse(posteam == home_team, 1, 0)
     ) %>%
@@ -67,7 +67,11 @@ if(Predictions[nrow(Predictions), "Update_Zeitpunkt"] <= Sys.Date()) {
       week, posteam, defteam, qtr, total_home_score, 
       total_away_score,
       desc
-    ) 
+    ) %>% 
+    anti_join(Vorhersagen %>% mutate(week = as.integer(week)), by = c("week", "season"))
+  
+  if (nrow(pbp_2021 != 0)){
+    
   
   # Vorhersagen erstellen
   Predictions_new <- predict(wp_fit, type = "prob", new_data = pbp_2021[,1:15])
@@ -101,7 +105,7 @@ if(Predictions[nrow(Predictions), "Update_Zeitpunkt"] <= Sys.Date()) {
   Vorhersagen <- Predictions %>%
     mutate(week = ifelse(week < 10, paste0(0, week), as.character(week)))
     
-
+  }
 }
 
 # WP_Plot Funktion laden
@@ -187,3 +191,4 @@ server <- function(input, output, session) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
